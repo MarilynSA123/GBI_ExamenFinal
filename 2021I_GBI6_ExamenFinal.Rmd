@@ -1,0 +1,257 @@
+---
+title: "GBI6 - BIOINFORMÁTICA"
+subtitle: "EXAMEN FINAL"
+author: 'Salcedo Marilyn'
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    highlight: espresso
+    theme: paper
+    toc: yes
+    toc_depth: 4
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+```{r, echo=FALSE}
+setwd("~/R/GBI6_ExamenFinal")
+```
+
+![](./img/ikiam.png)
+
+**Bienvenidos al examen final de GBI6 - Bioinformática.**
+
+# CONTENIDO DE LA EVALUACIÓN
+
+Los contenidos de esta evaluación corresponden a los temas de R revisados en el curso:
+
+-   Tipos de datos
+
+-   Instalación y uso de librerías. 
+
+-   Estructuras de control
+
+-   Funciones
+
+-   Manipulación de datos
+
+-   Estadística básica
+
+-   Visualización de datos
+
+# INDICACIONES GENERALES
+
+Esta permitido consultar todo material disponible: diapositivas, google...Sin embargo **NO** esta permitido consultar a sus colegas.
+
+Ustedes estan utilizando el R Markdown. Las instruciones son:
+
+-   Creen una carpeta en su computador con el nombre "GBI6_ExamenFinal" donde guarden este cuaderno .Rmd. 
+
+- Cree un subdirectorio de nombre "data" donde guarde la data que van a utilizar.
+
+- Cree un subdirectorio de nombre "results" donde guarde la tablas y figuras generadas del análisis.
+
+-   Definan a esa carpeta como su directorio de trabajo.
+
+-   Arriba, **solamente** donde dice "author", deben llenar sus nombres.
+
+-   Los codigos deben ser escritos dentro de las cajas que inician y terminan con \`\`\` o dentro de las cajas indicadas abajo de las preguntas.
+
+-   Al final del examen deben utilizar el comando "Knit" para generar un archivo .html
+
+-   Es recomendable crear una copia de este script guía.
+
+-   Genere controles de la versión para cada una de las preguntas con la leyenda "Nombre Apellido, resuelve el ejercicio XX". 
+
+- Copie y peque la dirección de su repositorio de GitHub en la actividad **"ExamenFinal"**.
+
+-   Asegúrese de responder explícitamente cada una de las preguntas.
+
+Para comprender la data de esta evaluación se requiere conocer el significado de algunos acrónimos de los tipos de cancer como indica el [Broad Institute Cancer Names](https://gdac.broadinstitute.org/). Asimismo revise la información de ayuda para ```expresionsTCGA```. La data contiene las columnas: 
+
+- **bcr_patient_barcode**: es el identificador del paciente. 
+
+- **dataset**: es el identificador del tipo de cancer del paciente. 
+
+- **resto de columnas**: nivees de expresión de los diferentes mRNA de los genes que están como nombre de columna (para este análisis se han seleccionado solamente 7 de ellos). 
+
+# PREGUNTAS
+## **Pregunta 1: MANIPULACIÓN DE DATOS [4 PUNTOS]**
+
+### [0.5 PUNTOS] 1.1 Defina su directorio de trabajo. 
+```{r wd}
+setwd("~/R/GBI6_ExamenFinal")
+```
+
+### [0.5 PUNTOS] 1.2. Cargue la data "mRNA_expr.csv"
+```{r data, echo=FALSE}
+df <- read.csv("data/mRNA_expr.csv")
+head(df,2)
+
+```
+
+### [1 PUNTO] 1.3 Cree una función de nombre ```long_df``` para transformar la data ```df``` de la forma wide a long.
+
+```{r funcion_long}
+library(tidyverse)
+# Escriba aquí la función long_df
+long_df = function(df){
+  df%>%
+    pivot_longer(!c(bcr_patient_barcode,dataset),names_to = "gen",values_to = "expresion_level")%>%
+    select(dataset,gen,expresion_level)
+}
+
+```
+
+
+### [1 PUNTO] Genere la data ```df_long``` utilizandola función ```long_df```. 
+La tabla resultante tendrá tres columnas: ```dataset, gen, expresion_level```.  
+```{r df_long}
+# Genere la data df_long 
+df_long=long_df(df)
+head(df_long,5)
+
+```
+
+### [0.5 PUNTOS] 1.5 A partir de la data ```df_long```, genere un **Descriptive table** (librería ```sjPlot```) y guárdelo en el subdirectorio "result"  con el nombre **mRNA_expr_summary.doc** (previamente debe seleccionar las celdas adecuadas con funciones de la librería ```dplyr``` en conjunto con el operador ```%>%```). 
+```{r desc_table}
+#install.packages("sjPlot")
+library(sjPlot)
+library(sjmisc)
+df_long=df_long%>%group_by(dataset,gen)
+desc_table=descr(df_long)
+# Escriba el código para crear el Descriptive table 
+
+```
+
+### [0.5 PUNTOS] 1.6 Interprete los resultados de la tabla resultante de la sección 1.5. 
+
+
+```{tex, echo=FALSE}
+# Escriba aquí su interpretación 
+
+```
+
+
+
+## **Pregunta 2 VISUALIZACION DE DATOS  [5 PUNTOS]**
+
+Para esta pregunta tiene que utilizar la data ```df_long```. 
+
+### [1 PUNTO] 2.1 Cree la funcion ```tcga_boxplots``` para visualizar boxplots y jitterplots. El único parámetro de la función es ```dataset```. La función debe crear un boxplot de los niveles de expresión para cada gen.
+
+```{r}
+library(ggplot2)
+abr=unique(df_long$dataset)
+name=c("Breast invasive carcinoma","Ovarian serous cystadenocarcinoma","Lung squamous cell carcinoma","Pan-kidney cohort","Kidney renal papillary cell carcinoma","Uterine Corpus Endometrial Carcinoma")
+tcga_boxplots=function(df_long){
+  df_long%>%
+    ggplot(aes(x=factor(gen),y=expresion_level,color=factor(gen)))+ 
+  geom_boxplot() + geom_jitter(alpha=0.2, size = 0.2)+
+    labs(x = "Tipo de gen",
+       y = "Nivel de expresión",color = "Tipo de gen",
+       title = name[which(abr==df_long$dataset[1])])
+}
+boxplot1=df_long%>%filter(dataset=="OV")%>%tcga_boxplots()
+boxplot1
+```
+
+### [0.5 PUNTOS] 2.2 Utilizando la función ```lapply()``` genera la lista ```cancertype_boxplots``` con las gráficas para cada tipo de cancer (cada tipo de dataset). 
+```{r list_boxplots}
+# Escriba el código para generar la lista. 
+cancertype=list(df_long%>%filter(dataset==abr[1]))
+for (i in 2:length(abr)) {
+  cancertype=c(cancertype,list(df_long%>%filter(dataset==abr[i])))
+}
+cancertype_boxplots=lapply(cancertype,tcga_boxplots)
+cancertype_boxplots
+```
+
+### [0.5 PUNTOS] 2.3 Guarde en el subdirectorio ```result``` el tercer plot de la lista ```cancertype_boxplots``` con el nombre ```boxplot3.png```. La definición de a figura debe ser de 300dpi. 
+```{r boxplot3}
+# Escriba el código para guardar la tercera figura de la lista. 
+ggsave(cancertype_boxplots[[3]], file="results/boxplot3.jpg", width=10, height=12,dpi = 300)
+
+```
+
+
+### [1 PUNTO] 2.4 Escriba la función ```reg_gen_expression```, con el parámetro ```gen```. En este caso la función visualizará una gráfica de nube de puntos (geom_point) y una regresión por tipo de "dataset". La gráfica será de comparación de gen1 con gen2; por ejemplo en el eje "x" ```GATA3``` y en el eje "y"" ```FN1```.  
+
+```{r reg_gen_exp}
+# Escriba aquí su función reg_gen_expression
+i=2
+genes=colnames(df)[3:9]
+df_reg=as.data.frame(cbind(df[,i+2],df[,i+3]))
+colnames(df_reg)[1]=genes[i]
+colnames(df_reg)[2]=genes[i+1]
+    
+reg_gen_expression=function(df_reg){
+  namex=colnames(df_reg[1])
+  namey=colnames(df_reg[2])
+  df_reg%>%ggplot(aes(x=df_reg[,1],y=df_reg[,2]))+
+    geom_point()+
+    geom_smooth(method = "lm",formula = y~x)+
+  labs(x = namex,
+       y = namey,
+       title = paste(namex,namey,sep = " VS "))+
+    theme_bw()
+}
+
+reg_gen_expression(df_reg)
+```
+
+
+### [0.5 PUNTOS] 2.5. Utilizando la función ```lapply()``` genera la lista ```reg_genplots``` con las gráficas para cada par de genes posibles. Recuerde que tiene 7 tipos de genes, se debe tener todas las combinaciones posibles por pares de genes (combinatoria sin repetición).
+```{r list_regplots}
+# Escriba el código para generar la lista. 
+
+combi=combn(genes,m=2,simplify = F)
+
+gen1=combi[[1]][1]
+gen2=combi[[1]][2] 
+
+i=which(gen1==genes)
+j=which(gen2==genes)
+
+df_reg=as.data.frame(cbind(df[,i+2],df[,j+2]))
+colnames(df_reg)[1]=genes[i]
+colnames(df_reg)[2]=genes[j]
+
+
+df_reg_list=list(df_reg)  
+for (i in 2:length(combi)) {
+  gen1=combi[[i]][1]
+  gen2=combi[[i]][2] 
+  
+  j=which(gen1==genes)
+  k=which(gen2==genes)
+  
+  df_reg=as.data.frame(cbind(df[,j+2],df[,k+2]))
+  colnames(df_reg)[1]=genes[j]
+  colnames(df_reg)[2]=genes[k] 
+  
+  df_reg_list=c(df_reg_list,list(df_reg))
+}
+
+reg_genplots=lapply(df_reg_list,reg_gen_expression)
+reg_genplots
+```
+
+
+### [0.5 PUNTOS] 2.6. Guarde en el subdirectorio ```result``` el onceavo plot de la lista ```reg_genplots``` con el nombre ```regresion11.pdf```. La definición de a figura debe ser de 300dpi. 
+```{r reg11}
+# Escriba el código para guardar el onceavo plot. 
+ggsave(reg_genplots[[11]], file="results/regresion11.pdf", width=10, height=12,dpi = 300)
+
+```
+
+
+### [1 PUNTO] 2.7. Interprete los resultados de las figuras ```boxplot3.png``` y ```regresion11.pdf```.
+
+```{tex}
+# Esciba aquí su intepretación
+
+```
+
+## 3. CONTROL DE LA VERSIÓN [1 PUNTO]. Se verficará en ell repositorio de GitHub. 
+
